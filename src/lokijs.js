@@ -4108,6 +4108,10 @@
         this.options.persistent = false;
       }
 
+      if (!this.options.hasOwnProperty('emitUpdates')) {
+        this.options.emitUpdates = false;
+      }
+
       // 'persistentSortPriority':
       // 'passive' will defer the sort phase until they call data(). (most efficient overall)
       // 'active' will sort async whenever next idle. (prioritizes read speeds)
@@ -4142,6 +4146,9 @@
       // once we refactor transactions, i will tie in certain transactional events
 
       this.events = {
+        'insert': [],
+        'update': [],
+        'delete': [],
         'rebuild': [],
         'filter': [],
         'sort': []
@@ -4790,6 +4797,10 @@
           this.resultdata.push(this.collection.data[objIndex]);
         }
 
+        if (this.options.emitUpdates) {
+          this.emit('insert', {"operation":"insert", index:objIndex, result: this.collection.data[objIndex]});
+        }
+
         // need to re-sort to sort new document
         if (this.sortFunction || this.sortCriteria || this.sortCriteriaSimple) {
           this.queueSortPhase();
@@ -4816,6 +4827,10 @@
           }
         }
 
+        if (this.options.emitUpdates) {
+          this.emit('delete', {"operation":"delete", "index":oldPos});
+        }
+
         // in case changes to data altered a sort column
         if (this.sortFunction || this.sortCriteria || this.sortCriteriaSimple) {
           this.queueSortPhase();
@@ -4831,6 +4846,10 @@
         if (this.options.persistent) {
           // in case document changed, replace persistent view data with the latest collection.data document
           this.resultdata[oldPos] = this.collection.data[objIndex];
+        }
+
+        if (this.options.emitUpdates) {
+          this.emit('update',{"operation":"update", index: oldPos, result: this.collection.data[objIndex]} );
         }
 
         // in case changes to data altered a sort column
@@ -4887,12 +4906,21 @@
 
       // if any of the removed items were in our filteredrows...
       if (Object.keys(fxo).length > 0) {
+        var deleted;
+        if (this.options.emitUpdates) {
+          deleted = this.resultset.collection.data.filter(function (obj, idx) { return fxo[idx]; });
+        }
+
         // remove them from filtered rows
         this.resultset.filteredrows = this.resultset.filteredrows.filter(function (di, idx) { return !fxo[idx]; });
         // if persistent...
         if (this.options.persistent) {
           // remove from resultdata
           this.resultdata = this.resultdata.filter(function (obj, idx) { return !fxo[idx]; });
+        }
+
+        if (this.options.emitUpdates) {
+          this.emit('delete', {"operation":"delete", "result":deleted});
         }
 
         // and queue sorts
