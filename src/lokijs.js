@@ -5098,7 +5098,8 @@
         'flushbuffer': [],
         'error': [],
         'delete': [],
-        'warning': []
+        'warning': [],
+        'clear':[]
       };
 
       // changes are tracked by collection and aggregated by the db
@@ -6030,6 +6031,8 @@
           self.binaryIndices[biname].values = [];
         });
       }
+
+      this.emit('clear');
     };
 
     /**
@@ -6085,6 +6088,8 @@
 
         oldInternal = arr[0]; // -internal- obj ref
         position = arr[1]; // position in data array
+
+        //Add an option to continue the update only if the jsondiffpatch is empty, so we can overwrite/update our objects all we want and only get update events if things actually change.
 
         // if configured to clone, do so now... otherwise just use same obj reference
         newInternal = this.cloneObjects || (!this.disableDeltaChangesApi && this.disableFreeze) ? clone(doc, this.cloneMethod) : doc;
